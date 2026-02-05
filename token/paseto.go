@@ -26,17 +26,32 @@ func NewPasetoMaker(secretKey string) (Maker, error) {
 	return maker, nil
 }
 
-func (maker *PasetoMaker) CreateToken(id int64, email string, role string, name string, duration time.Duration) (string, *TokenPayload, error) {
-	payload, err := NewTokenPayload(id, email, role, name, duration)
-	if err != nil {
-		return "", nil, err
+func (maker *PasetoMaker) CreateToken(
+	id int64,
+	email string,
+	role string,
+	name string,
+	instituteID int32,
+	duration time.Duration,
+) (string, *TokenPayload, error) {
+
+	payload := &TokenPayload{
+		ID:          id,
+		Email:       email,
+		Role:        role,
+		Name:        name,
+		InstituteID: instituteID,
+		IssuedAt:    time.Now(),
+		ExpiredAt:   time.Now().Add(duration),
 	}
 
 	t := paseto.NewToken()
-	t.SetExpiration(payload.ExpiredAt)
 	t.SetIssuedAt(payload.IssuedAt)
+	t.SetExpiration(payload.ExpiredAt)
 	t.Set(PayloadKey, payload)
-	return t.V4Encrypt(maker.symmetricKey, nil), payload, nil
+
+	token := t.V4Encrypt(maker.symmetricKey, nil)
+	return token, payload, nil
 }
 
 func (maker *PasetoMaker) VerifyToken(tokenString string) (*TokenPayload, error) {
