@@ -75,5 +75,10 @@ func (server *Server) setupApi() {
 		return c.JSON(fiber.Map{"message": "hello"})
 	})
 
+	app.Get("/login", server.userLogin)
+	app.Get("/users/:id", server.authMiddleware, server.getUserByID)
+	app.Get("/users", server.authMiddleware, server.getUserByEmail)
+
 	server.app = app
+
 }
