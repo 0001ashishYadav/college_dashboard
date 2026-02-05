@@ -9,7 +9,46 @@ import (
 )
 
 type Querier interface {
-	Login(ctx context.Context, arg LoginParams) (LoginRow, error)
+	CreateCarousel(ctx context.Context, arg CreateCarouselParams) (Carousel, error)
+	CreateCarouselPhoto(ctx context.Context, arg CreateCarouselPhotoParams) (CarouselPhoto, error)
+	CreateInstitute(ctx context.Context, arg CreateInstituteParams) (Institute, error)
+	CreateNotice(ctx context.Context, arg CreateNoticeParams) (Notice, error)
+	CreatePhoto(ctx context.Context, arg CreatePhotoParams) (Photo, error)
+	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	DeleteCarousel(ctx context.Context, id int32) error
+	DeleteCarouselPhoto(ctx context.Context, id int32) error
+	DeleteInstitute(ctx context.Context, id int32) error
+	DeleteNotice(ctx context.Context, id int32) error
+	DeletePhoto(ctx context.Context, id int32) error
+	DeleteUser(ctx context.Context, id int32) error
+	DisableInstitute(ctx context.Context, id int32) error
+	DisableUser(ctx context.Context, id int32) error
+	GetAllInstitutes(ctx context.Context) ([]Institute, error)
+	GetAllPhotos(ctx context.Context) ([]Photo, error)
+	GetCarousel(ctx context.Context, arg GetCarouselParams) (Carousel, error)
+	GetCarouselPhotoByID(ctx context.Context, id int32) (CarouselPhoto, error)
+	GetCarouselPhotosByCarouselID(ctx context.Context, carouselID int32) ([]GetCarouselPhotosByCarouselIDRow, error)
+	GetCarouselsByInstitute(ctx context.Context, instituteID int32) ([]Carousel, error)
+	GetInstituteByCode(ctx context.Context, code string) (Institute, error)
+	GetInstituteByID(ctx context.Context, id int32) (Institute, error)
+	GetNotice(ctx context.Context, arg GetNoticeParams) (Notice, error)
+	GetNoticesByInstitute(ctx context.Context, instituteID int32) ([]Notice, error)
+	GetPhotoByID(ctx context.Context, id int32) (Photo, error)
+	GetPhotosByUser(ctx context.Context, uploadedBy int32) ([]Photo, error)
+	GetUserByEmail(ctx context.Context, email string) (User, error)
+	GetUserByID(ctx context.Context, arg GetUserByIDParams) (User, error)
+	GetUsersByInstitute(ctx context.Context, instituteID int32) ([]User, error)
+	Login(ctx context.Context, arg LoginParams) (Admin, error)
+	LoginUser(ctx context.Context, arg LoginUserParams) (User, error)
+	ReorderCarouselPhoto(ctx context.Context, arg ReorderCarouselPhotoParams) error
+	SearchNotices(ctx context.Context, arg SearchNoticesParams) ([]Notice, error)
+	UpdateCarousel(ctx context.Context, arg UpdateCarouselParams) (Carousel, error)
+	UpdateCarouselPhoto(ctx context.Context, arg UpdateCarouselPhotoParams) (CarouselPhoto, error)
+	UpdateInstitute(ctx context.Context, arg UpdateInstituteParams) (Institute, error)
+	UpdateNotice(ctx context.Context, arg UpdateNoticeParams) (Notice, error)
+	UpdatePhoto(ctx context.Context, arg UpdatePhotoParams) (Photo, error)
+	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
+	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
 }
 
 var _ Querier = (*Queries)(nil)

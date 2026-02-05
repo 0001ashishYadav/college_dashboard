@@ -4,10 +4,72 @@
 
 package pgdb
 
+import (
+	"github.com/jackc/pgx/v5/pgtype"
+)
+
 type Admin struct {
 	ID       int32  `json:"id"`
 	Name     string `json:"name"`
 	Role     string `json:"role"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+type Carousel struct {
+	ID          int32              `json:"id"`
+	InstituteID int32              `json:"institute_id"`
+	Title       pgtype.Text        `json:"title"`
+	IsActive    pgtype.Bool        `json:"is_active"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
+type CarouselPhoto struct {
+	ID           int32              `json:"id"`
+	CarouselID   int32              `json:"carousel_id"`
+	PhotoID      int32              `json:"photo_id"`
+	DisplayText  pgtype.Text        `json:"display_text"`
+	DisplayOrder pgtype.Int4        `json:"display_order"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+}
+
+type Institute struct {
+	ID        int32              `json:"id"`
+	Name      string             `json:"name"`
+	Code      string             `json:"code"`
+	Email     pgtype.Text        `json:"email"`
+	Phone     pgtype.Text        `json:"phone"`
+	Address   pgtype.Text        `json:"address"`
+	IsActive  pgtype.Bool        `json:"is_active"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
+type Notice struct {
+	ID          int32              `json:"id"`
+	InstituteID int32              `json:"institute_id"`
+	Title       string             `json:"title"`
+	Description pgtype.Text        `json:"description"`
+	IsPublished pgtype.Bool        `json:"is_published"`
+	PublishDate pgtype.Date        `json:"publish_date"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
+type Photo struct {
+	ID         int32              `json:"id"`
+	ImageUrl   string             `json:"image_url"`
+	AltText    pgtype.Text        `json:"alt_text"`
+	UploadedBy int32              `json:"uploaded_by"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+}
+
+type User struct {
+	ID          int32              `json:"id"`
+	InstituteID int32              `json:"institute_id"`
+	Name        string             `json:"name"`
+	Email       string             `json:"email"`
+	Password    string             `json:"password"`
+	Role        pgtype.Text        `json:"role"`
+	IsActive    pgtype.Bool        `json:"is_active"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 }

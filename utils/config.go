@@ -9,16 +9,11 @@ import (
 )
 
 type Config struct {
-	DatabaseURL        string
-	TokenSymmetricKey  string
-	Port               int16
-	TokenDuration      time.Duration
-	ProfilesFolder     string
-	MqttBroker         string
-	MqttClientID       string
-	MqttUser           string
-	MqttPassword       string
-	AttendanceDeviceID string
+	DatabaseURL       string
+	TokenSymmetricKey string
+	Port              int16
+	TokenDuration     time.Duration
+	ProfilesFolder    string
 }
 
 func LoadConfig(path string) (Config, error) {
@@ -39,20 +34,21 @@ func LoadConfig(path string) (Config, error) {
 	port := int16(portInt)
 
 	config := Config{
-		DatabaseURL:        os.Getenv("DATABASE_URL"),
-		TokenSymmetricKey:  os.Getenv("TOKEN_SYMMETRIC_KEY"),
-		Port:               port,
-		TokenDuration:      tokenDuration,
-		ProfilesFolder:     os.Getenv("PROFILES_FOLDER"),
-		MqttBroker:         os.Getenv("MQTT_BROKER"),
-		MqttClientID:       os.Getenv("MQTT_CLIENT_ID"),
-		MqttUser:           os.Getenv("MQTT_USER"),
-		MqttPassword:       os.Getenv("MQTT_PASSWORD"),
-		AttendanceDeviceID: os.Getenv("ATTENDANCE_DEVICE_ID"),
+		DatabaseURL:       os.Getenv("DATABASE_URL"),
+		TokenSymmetricKey: os.Getenv("TOKEN_SYMMETRIC_KEY"),
+		Port:              port,
+		TokenDuration:     tokenDuration,
+		ProfilesFolder:    os.Getenv("PROFILES_FOLDER"),
+	}
+	if config.DatabaseURL == "" {
+		return Config{}, &ConfigError{"DATABASE_URL is missing"}
+	}
+	if config.TokenSymmetricKey == "" {
+		return Config{}, &ConfigError{"TOKEN_SYMMETRIC_KEY is missing"}
 	}
 
 	// Optionally, check for required variables
-	if config.DatabaseURL == "" || config.TokenSymmetricKey == "" || config.MqttBroker == "" || config.MqttClientID == "" || config.MqttUser == "" || config.MqttPassword == "" || config.AttendanceDeviceID == "" {
+	if config.DatabaseURL == "" || config.TokenSymmetricKey == "" {
 		return config, ErrMissingEnv
 	}
 

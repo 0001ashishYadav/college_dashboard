@@ -10,11 +10,7 @@ import (
 )
 
 const login = `-- name: Login :one
-SELECT 
-name,
-role,
-email
-FROM admin
+SELECT id, name, role, email, password FROM admin
 WHERE id = $1 OR email = $2
 LIMIT 1
 `
@@ -24,15 +20,15 @@ type LoginParams struct {
 	Email string `json:"email"`
 }
 
-type LoginRow struct {
-	Name  string `json:"name"`
-	Role  string `json:"role"`
-	Email string `json:"email"`
-}
-
-func (q *Queries) Login(ctx context.Context, arg LoginParams) (LoginRow, error) {
+func (q *Queries) Login(ctx context.Context, arg LoginParams) (Admin, error) {
 	row := q.db.QueryRow(ctx, login, arg.ID, arg.Email)
-	var i LoginRow
-	err := row.Scan(&i.Name, &i.Role, &i.Email)
+	var i Admin
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Role,
+		&i.Email,
+		&i.Password,
+	)
 	return i, err
 }

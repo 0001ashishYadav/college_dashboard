@@ -15,7 +15,7 @@ func main() {
 	// config
 	config, err := utils.LoadConfig(".")
 	if err != nil {
-		log.Fatal("failed to read env", err)
+		log.Fatal("failed to read env ", err)
 	}
 	// db
 	poolConfig, err := pgxpool.ParseConfig(config.DatabaseURL)
