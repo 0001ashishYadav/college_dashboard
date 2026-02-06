@@ -8,14 +8,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type Admin struct {
-	ID       int32  `json:"id"`
-	Name     string `json:"name"`
-	Role     string `json:"role"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
 type Carousel struct {
 	ID          int32              `json:"id"`
 	InstituteID int32              `json:"institute_id"`

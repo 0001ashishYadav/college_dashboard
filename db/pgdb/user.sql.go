@@ -82,12 +82,17 @@ const getUserByEmail = `-- name: GetUserByEmail :one
 SELECT id, institute_id, name, email, password, role, is_active, created_at
 FROM users
 WHERE email = $1
-AND is_active = true
+  AND institute_id = $2
 LIMIT 1
 `
 
-func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
-	row := q.db.QueryRow(ctx, getUserByEmail, email)
+type GetUserByEmailParams struct {
+	Email       string `json:"email"`
+	InstituteID int32  `json:"institute_id"`
+}
+
+func (q *Queries) GetUserByEmail(ctx context.Context, arg GetUserByEmailParams) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByEmail, arg.Email, arg.InstituteID)
 	var i User
 	err := row.Scan(
 		&i.ID,

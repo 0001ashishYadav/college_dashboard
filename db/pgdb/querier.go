@@ -35,10 +35,9 @@ type Querier interface {
 	GetNoticesByInstitute(ctx context.Context, instituteID int32) ([]Notice, error)
 	GetPhotoByID(ctx context.Context, id int32) (Photo, error)
 	GetPhotosByUser(ctx context.Context, uploadedBy int32) ([]Photo, error)
-	GetUserByEmail(ctx context.Context, email string) (User, error)
+	GetUserByEmail(ctx context.Context, arg GetUserByEmailParams) (User, error)
 	GetUserByID(ctx context.Context, arg GetUserByIDParams) (User, error)
 	GetUsersByInstitute(ctx context.Context, instituteID int32) ([]User, error)
-	Login(ctx context.Context, arg LoginParams) (Admin, error)
 	LoginUser(ctx context.Context, arg LoginUserParams) (User, error)
 	ReorderCarouselPhoto(ctx context.Context, arg ReorderCarouselPhotoParams) error
 	SearchNotices(ctx context.Context, arg SearchNoticesParams) ([]Notice, error)
