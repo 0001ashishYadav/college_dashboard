@@ -280,6 +280,76 @@ func (server *Server) UpdateUserPassword(c *fiber.Ctx) error {
 	})
 }
 
+func (server *Server) DisableUser(c *fiber.Ctx) error {
+
+	// 1️⃣ Read user ID from URL
+	userID, err := c.ParamsInt("id")
+	if err != nil || userID <= 0 {
+		return fiber.NewError(
+			fiber.StatusBadRequest,
+			"invalid user id",
+		)
+	}
+
+	// 2️⃣ Get JWT payload
+	payload, ok := c.Locals(TokenPayloadKey).(*token.TokenPayload)
+	if !ok {
+		return fiber.NewError(
+			fiber.StatusUnauthorized,
+			"invalid auth context",
+		)
+	}
+
+	// 3️⃣ Admin-only access
+	if payload.Role != "admin" {
+		return fiber.NewError(
+			fiber.StatusForbidden,
+			"admin access required",
+		)
+	}
+
+	// 4️⃣ Prevent admin disabling himself
+	if int64(userID) == payload.ID {
+		return fiber.NewError(
+			fiber.StatusBadRequest,
+			"you cannot disable your own account",
+		)
+	}
+
+	// 5️⃣ Disable user (Institute scoped)
+	user, err := server.store.DisableUser(
+		c.Context(),
+		pgdb.DisableUserParams{
+			ID:          int32(userID),
+			InstituteID: payload.InstituteID,
+		},
+	)
+	if err != nil {
+		if pgdb.ErrorCode(err) == pgdb.ErrorNoRow {
+			return NotFoundError("user not found")
+		}
+		return InternalServerError(err.Error())
+	}
+
+	// 6️⃣ Safe role
+	role := ""
+	if user.Role.Valid {
+		role = user.Role.String
+	}
+
+	// 7️⃣ Response
+	return c.JSON(fiber.Map{
+		"message":    "user disabled successfully",
+		"id":         user.ID,
+		"institute":  user.InstituteID,
+		"name":       user.Name,
+		"email":      user.Email,
+		"role":       role,
+		"is_active":  user.IsActive,
+		"updated_at": user.UpdatedAt,
+	})
+}
+
 func (server *Server) userLogin(c *fiber.Ctx) error {
 	var req userLoginRequest
 
@@ -304,7 +374,15 @@ func (server *Server) userLogin(c *fiber.Ctx) error {
 		return InternalServerError(err.Error())
 	}
 
-	// ⚠️ You should hash later — keeping as-is for now
+	// ❌ Check if user is disabled
+	if user.IsActive.Valid && !user.IsActive.Bool {
+		return fiber.NewError(
+			fiber.StatusForbidden,
+			"your account is disabled, please contact admin",
+		)
+	}
+
+	// ⚠️ Password check (hash later)
 	if user.Password != req.Password {
 		return fiber.NewError(
 			fiber.StatusUnauthorized,
@@ -312,7 +390,7 @@ func (server *Server) userLogin(c *fiber.Ctx) error {
 		)
 	}
 
-	// 🔥 CREATE TOKEN WITH institute_id
+	// 🔐 Create JWT with institute_id
 	token, payload, err := server.token.CreateToken(
 		int64(user.ID),
 		user.Email,
