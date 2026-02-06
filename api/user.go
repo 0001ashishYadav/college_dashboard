@@ -6,11 +6,12 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type userLoginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required"`
 }
 
 type userLoginResponse struct {
@@ -21,6 +22,97 @@ type userLoginResponse struct {
 	Name           string    `json:"name"`
 	Role           string    `json:"role"`
 	InstituteID    int32     `json:"institute_id"`
+}
+
+// ✅ Create user request (ADMIN)
+type CreateUserRequest struct {
+	Name     string `json:"name" validate:"required,min=3"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required,min=6"`
+	Role     string `json:"role" validate:"required"`
+	IsActive bool   `json:"is_active"`
+}
+
+func (server *Server) createUser(c *fiber.Ctx) error {
+
+	// 1️⃣ Parse request body
+	var req CreateUserRequest
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(
+			fiber.StatusBadRequest,
+			"invalid request body",
+		)
+	}
+
+	// 2️⃣ Validate request
+	if validationErrors := server.validate(req); validationErrors != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(validationErrors)
+	}
+
+	// 3️⃣ Get token payload
+	payload, ok := c.Locals(TokenPayloadKey).(*token.TokenPayload)
+	if !ok {
+		return fiber.NewError(
+			fiber.StatusUnauthorized,
+			"invalid auth context",
+		)
+	}
+
+	// 4️⃣ Admin-only access
+	if payload.Role != "admin" {
+		return fiber.NewError(
+			fiber.StatusForbidden,
+			"admin access required",
+		)
+	}
+
+	// 5️⃣ Create user (in same institute)
+	user, err := server.store.CreateUser(
+		c.Context(),
+		pgdb.CreateUserParams{
+			InstituteID: payload.InstituteID,
+			Name:        req.Name,
+			Email:       req.Email,
+			Password:    req.Password, // ⚠️ hash later
+
+			Role: pgtype.Text{
+				String: req.Role,
+				Valid:  true,
+			},
+			IsActive: pgtype.Bool{
+				Bool:  req.IsActive,
+				Valid: true,
+			},
+		},
+	)
+
+	if err != nil {
+		// unique email violation
+		if pgdb.ErrorCode(err) == pgdb.ErrorDuplicateKey {
+			return fiber.NewError(
+				fiber.StatusConflict,
+				"email already exists",
+			)
+		}
+		return InternalServerError(err.Error())
+	}
+
+	// 6️⃣ Safe role
+	role := ""
+	if user.Role.Valid {
+		role = user.Role.String
+	}
+
+	// 7️⃣ Response (NO password)
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+		"id":           user.ID,
+		"institute_id": user.InstituteID,
+		"name":         user.Name,
+		"email":        user.Email,
+		"role":         role,
+		"is_active":    user.IsActive,
+		"created_at":   user.CreatedAt,
+	})
 }
 
 func (server *Server) userLogin(c *fiber.Ctx) error {
