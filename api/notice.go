@@ -282,3 +282,61 @@ func (server *Server) updateNotice(c *fiber.Ctx) error {
 		"created_at":   notice.CreatedAt,
 	})
 }
+
+func (server *Server) deleteNotice(c *fiber.Ctx) error {
+
+	// 1️⃣ Parse notice ID from URL
+	noticeID, err := c.ParamsInt("id")
+	if err != nil || noticeID <= 0 {
+		return fiber.NewError(
+			fiber.StatusBadRequest,
+			"invalid notice id",
+		)
+	}
+
+	// 2️⃣ Get token payload
+	payload, ok := c.Locals(TokenPayloadKey).(*token.TokenPayload)
+	if !ok {
+		return fiber.NewError(
+			fiber.StatusUnauthorized,
+			"invalid auth context",
+		)
+	}
+
+	// 🔐 3️⃣ Admin-only access
+	if payload.Role != "admin" {
+		return fiber.NewError(
+			fiber.StatusForbidden,
+			"admin access required",
+		)
+	}
+
+	// 4️⃣ Fetch notice first (SECURITY CHECK)
+	notice, err := server.store.GetNotice(
+		c.Context(),
+		pgdb.GetNoticeParams{
+			ID:          int32(noticeID),
+			InstituteID: payload.InstituteID,
+		},
+	)
+	if err != nil {
+		if pgdb.ErrorCode(err) == pgdb.ErrorNoRow {
+			return NotFoundError("notice not found")
+		}
+		return InternalServerError(err.Error())
+	}
+
+	// 5️⃣ Delete notice
+	if err := server.store.DeleteNotice(
+		c.Context(),
+		notice.ID,
+	); err != nil {
+		return InternalServerError(err.Error())
+	}
+
+	// 6️⃣ Success response
+	return c.JSON(fiber.Map{
+		"message":   "notice deleted successfully",
+		"notice_id": notice.ID,
+	})
+}
