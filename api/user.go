@@ -134,22 +134,33 @@ func (server *Server) getUserByID(c *fiber.Ctx) error {
 }
 
 func (server *Server) getUserByEmail(c *fiber.Ctx) error {
-	// 1️⃣ Read email from query param
-	email := c.Query("email")
 
+	// 1️⃣ Read email
+	email := c.Query("email")
 	if email == "" {
-		return &fiber.Error{
-			Code:    fiber.StatusBadRequest,
-			Message: "email is required",
-		}
+		return fiber.NewError(
+			fiber.StatusBadRequest,
+			"email query parameter is required",
+		)
 	}
 
-	// 2️⃣ Fetch user from DB
+	// 2️⃣ Get token payload
+	payload, ok := c.Locals(TokenPayloadKey).(*token.TokenPayload)
+	if !ok {
+		return fiber.NewError(
+			fiber.StatusUnauthorized,
+			"invalid auth context",
+		)
+	}
+
+	// 3️⃣ Fetch user (INSTITUTE SCOPED)
 	user, err := server.store.GetUserByEmail(
 		c.Context(),
-		email,
+		pgdb.GetUserByEmailParams{
+			Email:       email,
+			InstituteID: payload.InstituteID,
+		},
 	)
-
 	if err != nil {
 		if pgdb.ErrorCode(err) == pgdb.ErrorNoRow {
 			return NotFoundError("user not found")
@@ -157,13 +168,19 @@ func (server *Server) getUserByEmail(c *fiber.Ctx) error {
 		return InternalServerError(err.Error())
 	}
 
-	// 3️⃣ Return safe response (NO password)
+	// 4️⃣ Safe role
+	role := ""
+	if user.Role.Valid {
+		role = user.Role.String
+	}
+
+	// 5️⃣ Response
 	return c.JSON(fiber.Map{
 		"id":           user.ID,
 		"institute_id": user.InstituteID,
 		"name":         user.Name,
 		"email":        user.Email,
-		"role":         user.Role.String,
+		"role":         role,
 		"is_active":    user.IsActive,
 		"created_at":   user.CreatedAt,
 	})
