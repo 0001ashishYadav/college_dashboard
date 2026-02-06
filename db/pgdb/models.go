@@ -64,4 +64,5 @@ type User struct {
 	Role        pgtype.Text        `json:"role"`
 	IsActive    pgtype.Bool        `json:"is_active"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 }

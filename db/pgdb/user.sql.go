@@ -22,7 +22,7 @@ INSERT INTO users (
 ) VALUES (
     $1, $2, $3, $4, $5, $6
 )
-RETURNING id, institute_id, name, email, password, role, is_active, created_at
+RETURNING id, institute_id, name, email, password, role, is_active, created_at, updated_at
 `
 
 type CreateUserParams struct {
@@ -53,6 +53,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.Role,
 		&i.IsActive,
 		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -79,7 +80,7 @@ func (q *Queries) DisableUser(ctx context.Context, id int32) error {
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, institute_id, name, email, password, role, is_active, created_at
+SELECT id, institute_id, name, email, password, role, is_active, created_at, updated_at
 FROM users
 WHERE email = $1
   AND institute_id = $2
@@ -103,12 +104,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, arg GetUserByEmailParams) 
 		&i.Role,
 		&i.IsActive,
 		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, institute_id, name, email, password, role, is_active, created_at
+SELECT id, institute_id, name, email, password, role, is_active, created_at, updated_at
 FROM users
 WHERE id = $1
 AND institute_id = $2
@@ -132,12 +134,13 @@ func (q *Queries) GetUserByID(ctx context.Context, arg GetUserByIDParams) (User,
 		&i.Role,
 		&i.IsActive,
 		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const getUsersByInstitute = `-- name: GetUsersByInstitute :many
-SELECT id, institute_id, name, email, password, role, is_active, created_at
+SELECT id, institute_id, name, email, password, role, is_active, created_at, updated_at
 FROM users
 WHERE institute_id = $1
 ORDER BY created_at DESC
@@ -161,6 +164,7 @@ func (q *Queries) GetUsersByInstitute(ctx context.Context, instituteID int32) ([
 			&i.Role,
 			&i.IsActive,
 			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -173,7 +177,7 @@ func (q *Queries) GetUsersByInstitute(ctx context.Context, instituteID int32) ([
 }
 
 const loginUser = `-- name: LoginUser :one
-SELECT id, institute_id, name, email, password, role, is_active, created_at
+SELECT id, institute_id, name, email, password, role, is_active, created_at, updated_at
 FROM users
 WHERE (id = $1 OR email = $2)
 AND is_active = true
@@ -197,6 +201,7 @@ func (q *Queries) LoginUser(ctx context.Context, arg LoginUserParams) (User, err
 		&i.Role,
 		&i.IsActive,
 		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -205,28 +210,29 @@ const updateUser = `-- name: UpdateUser :one
 UPDATE users
 SET
     name = $2,
-    email = $3,
-    role = $4,
-    is_active = $5
+    role = $3,
+    is_active = $4,
+    updated_at = now()
 WHERE id = $1
-RETURNING id, institute_id, name, email, password, role, is_active, created_at
+  AND institute_id = $5
+RETURNING id, institute_id, name, email, password, role, is_active, created_at, updated_at
 `
 
 type UpdateUserParams struct {
-	ID       int32       `json:"id"`
-	Name     string      `json:"name"`
-	Email    string      `json:"email"`
-	Role     pgtype.Text `json:"role"`
-	IsActive pgtype.Bool `json:"is_active"`
+	ID          int32       `json:"id"`
+	Name        string      `json:"name"`
+	Role        pgtype.Text `json:"role"`
+	IsActive    pgtype.Bool `json:"is_active"`
+	InstituteID int32       `json:"institute_id"`
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
 	row := q.db.QueryRow(ctx, updateUser,
 		arg.ID,
 		arg.Name,
-		arg.Email,
 		arg.Role,
 		arg.IsActive,
+		arg.InstituteID,
 	)
 	var i User
 	err := row.Scan(
@@ -238,6 +244,7 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.Role,
 		&i.IsActive,
 		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }

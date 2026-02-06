@@ -28,7 +28,8 @@ CREATE TABLE users (
     password TEXT NOT NULL,
     role TEXT DEFAULT 'admin',
     is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT (now())
+    created_at TIMESTAMPTZ NOT NULL DEFAULT (now()),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT (now())
 );
 
 

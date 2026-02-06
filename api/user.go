@@ -33,6 +33,12 @@ type CreateUserRequest struct {
 	IsActive bool   `json:"is_active"`
 }
 
+type UpdateUserRequest struct {
+	Name     string `json:"name" validate:"required,min=3"`
+	Role     string `json:"role" validate:"required"`
+	IsActive bool   `json:"is_active"`
+}
+
 func (server *Server) createUser(c *fiber.Ctx) error {
 
 	// 1️⃣ Parse request body
@@ -112,6 +118,73 @@ func (server *Server) createUser(c *fiber.Ctx) error {
 		"role":         role,
 		"is_active":    user.IsActive,
 		"created_at":   user.CreatedAt,
+	})
+}
+
+func (server *Server) updateUser(c *fiber.Ctx) error {
+	// 1️⃣ Get user_id from URL
+	userID, err := c.ParamsInt("id")
+	if err != nil || userID <= 0 {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid user id")
+	}
+
+	// 2️⃣ Parse request body
+	var req UpdateUserRequest
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "invalid request body")
+	}
+
+	// 3️⃣ Validate request
+	if err := server.valid.Struct(req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	}
+
+	// 4️⃣ Get institute_id from JWT
+	authPayload := c.Locals("authPayload").(*token.TokenPayload)
+
+	// 5️⃣ Prepare DB params (sqlc + pgtype)
+	arg := pgdb.UpdateUserParams{
+		ID:          int32(userID),
+		Name:        req.Name,
+		Role:        pgtype.Text{String: req.Role, Valid: true},
+		IsActive:    pgtype.Bool{Bool: req.IsActive, Valid: true},
+		InstituteID: authPayload.InstituteID, // 🔐 institute safety
+	}
+
+	// 6️⃣ Execute query
+	user, err := server.store.UpdateUser(c.Context(), arg)
+	if err != nil {
+
+		switch pgdb.ErrorCode(err) {
+
+		case pgdb.ErrorNoRow:
+			return fiber.NewError(
+				fiber.StatusNotFound,
+				"user not found",
+			)
+
+		case pgdb.ErrorDuplicateKey:
+			return fiber.NewError(
+				fiber.StatusConflict,
+				"duplicate value",
+			)
+		}
+
+		return InternalServerError(err.Error())
+	}
+
+	// 7️⃣ Response
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "user updated successfully",
+		"user": fiber.Map{
+			"id":         user.ID,
+			"name":       user.Name,
+			"email":      user.Email,
+			"role":       user.Role.String,
+			"is_active":  user.IsActive.Bool,
+			"institute":  user.InstituteID,
+			"updated_at": user.UpdatedAt,
+		},
 	})
 }
 
