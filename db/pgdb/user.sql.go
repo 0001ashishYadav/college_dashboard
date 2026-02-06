@@ -68,15 +68,47 @@ func (q *Queries) DeleteUser(ctx context.Context, id int32) error {
 	return err
 }
 
-const disableUser = `-- name: DisableUser :exec
+const disableUser = `-- name: DisableUser :one
 UPDATE users
-SET is_active = false
-WHERE id = $1
+SET
+    is_active = false,
+    updated_at = now()
+WHERE
+    id = $1
+    AND institute_id = $2
+RETURNING id, institute_id, name, email, role, is_active, created_at, updated_at
 `
 
-func (q *Queries) DisableUser(ctx context.Context, id int32) error {
-	_, err := q.db.Exec(ctx, disableUser, id)
-	return err
+type DisableUserParams struct {
+	ID          int32 `json:"id"`
+	InstituteID int32 `json:"institute_id"`
+}
+
+type DisableUserRow struct {
+	ID          int32              `json:"id"`
+	InstituteID int32              `json:"institute_id"`
+	Name        string             `json:"name"`
+	Email       string             `json:"email"`
+	Role        pgtype.Text        `json:"role"`
+	IsActive    pgtype.Bool        `json:"is_active"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) DisableUser(ctx context.Context, arg DisableUserParams) (DisableUserRow, error) {
+	row := q.db.QueryRow(ctx, disableUser, arg.ID, arg.InstituteID)
+	var i DisableUserRow
+	err := row.Scan(
+		&i.ID,
+		&i.InstituteID,
+		&i.Name,
+		&i.Email,
+		&i.Role,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one

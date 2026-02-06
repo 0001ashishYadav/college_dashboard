@@ -22,7 +22,7 @@ type Querier interface {
 	DeletePhoto(ctx context.Context, id int32) error
 	DeleteUser(ctx context.Context, id int32) error
 	DisableInstitute(ctx context.Context, id int32) error
-	DisableUser(ctx context.Context, id int32) error
+	DisableUser(ctx context.Context, arg DisableUserParams) (DisableUserRow, error)
 	GetAllInstitutes(ctx context.Context) ([]Institute, error)
 	GetAllPhotos(ctx context.Context) ([]Photo, error)
 	GetCarousel(ctx context.Context, arg GetCarouselParams) (Carousel, error)

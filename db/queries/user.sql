@@ -67,10 +67,16 @@ WHERE
 RETURNING id, institute_id, name, email, role, is_active, created_at, updated_at;
 
 
--- name: DisableUser :exec
+-- name: DisableUser :one
 UPDATE users
-SET is_active = false
-WHERE id = $1;
+SET
+    is_active = false,
+    updated_at = now()
+WHERE
+    id = $1
+    AND institute_id = $2
+RETURNING id, institute_id, name, email, role, is_active, created_at, updated_at;
+
 
 
 -- name: DeleteUser :exec
