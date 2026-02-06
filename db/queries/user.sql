@@ -47,11 +47,13 @@ RETURNING *;
 UPDATE users
 SET
     name = $2,
-    email = $3,
-    role = $4,
-    is_active = $5
+    role = $3,
+    is_active = $4,
+    updated_at = now()
 WHERE id = $1
+  AND institute_id = $5
 RETURNING *;
+
 
 
 -- name: UpdateUserPassword :exec
