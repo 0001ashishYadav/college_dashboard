@@ -39,6 +39,11 @@ type UpdateUserRequest struct {
 	IsActive bool   `json:"is_active"`
 }
 
+type UpdateUserPasswordRequest struct {
+	OldPassword string `json:"old_password" validate:"required"`
+	NewPassword string `json:"new_password" validate:"required,min=6"`
+}
+
 func (server *Server) createUser(c *fiber.Ctx) error {
 
 	// 1️⃣ Parse request body
@@ -185,6 +190,93 @@ func (server *Server) updateUser(c *fiber.Ctx) error {
 			"institute":  user.InstituteID,
 			"updated_at": user.UpdatedAt,
 		},
+	})
+}
+
+func (server *Server) UpdateUserPassword(c *fiber.Ctx) error {
+
+	// 1️⃣ Parse user ID from URL
+	userID, err := c.ParamsInt("id")
+	if err != nil || userID <= 0 {
+		return fiber.NewError(
+			fiber.StatusBadRequest,
+			"invalid user id",
+		)
+	}
+
+	// 2️⃣ Parse request body
+	var req UpdateUserPasswordRequest
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(
+			fiber.StatusBadRequest,
+			"invalid request body",
+		)
+	}
+
+	// 3️⃣ Validate request
+	if errs := server.validate(req); errs != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(errs)
+	}
+
+	// 4️⃣ Get JWT payload
+	payload, ok := c.Locals(TokenPayloadKey).(*token.TokenPayload)
+	if !ok {
+		return fiber.NewError(
+			fiber.StatusUnauthorized,
+			"invalid auth context",
+		)
+	}
+
+	// 5️⃣ Only admin OR self user can update password
+	if payload.Role != "admin" && int64(userID) != payload.ID {
+		return fiber.NewError(
+			fiber.StatusForbidden,
+			"not allowed to update this user's password",
+		)
+	}
+
+	// 6️⃣ Fetch existing user
+	user, err := server.store.GetUserByID(
+		c.Context(),
+		pgdb.GetUserByIDParams{
+			ID:          int32(userID),
+			InstituteID: payload.InstituteID,
+		},
+	)
+	if err != nil {
+		if pgdb.ErrorCode(err) == pgdb.ErrorNoRow {
+			return NotFoundError("user not found")
+		}
+		return InternalServerError(err.Error())
+	}
+
+	// 7️⃣ Verify old password
+	// ⚠️ Plain compare for now (hash later)
+	if user.Password != req.OldPassword {
+		return fiber.NewError(
+			fiber.StatusUnauthorized,
+			"old password is incorrect",
+		)
+	}
+
+	// 8️⃣ Update password
+	updatedUser, err := server.store.UpdateUserPassword(
+		c.Context(),
+		pgdb.UpdateUserPasswordParams{
+			Password:    req.NewPassword,
+			ID:          int32(userID),
+			InstituteID: payload.InstituteID,
+		},
+	)
+	if err != nil {
+		return InternalServerError(err.Error())
+	}
+
+	// 9️⃣ Success response
+	return c.JSON(fiber.Map{
+		"message":    "password updated successfully",
+		"user_id":    updatedUser.ID,
+		"updated_at": updatedUser.UpdatedAt,
 	})
 }
 

@@ -78,6 +78,8 @@ func (server *Server) setupApi() {
 	app.Post("/login", server.userLogin)
 	app.Post("/user", server.authMiddleware, server.createUser)
 	app.Put("/users/:id", server.authMiddleware, server.updateUser)
+	app.Put("/users/:id/password", server.authMiddleware, server.UpdateUserPassword)
+
 	app.Get("/users/:id", server.authMiddleware, server.getUserByID)
 	app.Get("/users", server.authMiddleware, server.getUserByEmail)
 	app.Get("/institutes/users", server.authMiddleware, server.getUsersByInstitute)
