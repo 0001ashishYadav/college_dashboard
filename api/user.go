@@ -185,3 +185,55 @@ func (server *Server) getUserByEmail(c *fiber.Ctx) error {
 		"created_at":   user.CreatedAt,
 	})
 }
+
+func (server *Server) getUsersByInstitute(c *fiber.Ctx) error {
+
+	// 1️⃣ Get token payload
+	payload, ok := c.Locals(TokenPayloadKey).(*token.TokenPayload)
+	if !ok {
+		return fiber.NewError(
+			fiber.StatusUnauthorized,
+			"invalid auth context",
+		)
+	}
+
+	// 2️⃣ (Optional but recommended) Admin-only access
+	if payload.Role != "admin" {
+		return fiber.NewError(
+			fiber.StatusForbidden,
+			"admin access required",
+		)
+	}
+
+	// 3️⃣ Fetch users
+	users, err := server.store.GetUsersByInstitute(
+		c.Context(),
+		payload.InstituteID,
+	)
+	if err != nil {
+		return InternalServerError(err.Error())
+	}
+
+	// 4️⃣ Build safe response
+	response := make([]fiber.Map, 0, len(users))
+
+	for _, user := range users {
+		role := ""
+		if user.Role.Valid {
+			role = user.Role.String
+		}
+
+		response = append(response, fiber.Map{
+			"id":           user.ID,
+			"institute_id": user.InstituteID,
+			"name":         user.Name,
+			"email":        user.Email,
+			"role":         role,
+			"is_active":    user.IsActive,
+			"created_at":   user.CreatedAt,
+		})
+	}
+
+	// 5️⃣ Return response
+	return c.JSON(response)
+}
