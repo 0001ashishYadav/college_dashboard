@@ -16,6 +16,13 @@ type CreateNoticeRequest struct {
 	PublishDate *time.Time `json:"publish_date"`
 }
 
+type UpdateNoticeRequest struct {
+	Title       string `json:"title" validate:"required"`
+	Description string `json:"description"`
+	IsPublished *bool  `json:"is_published"`
+	PublishDate string `json:"publish_date"` // YYYY-MM-DD
+}
+
 func (server *Server) createNotice(c *fiber.Ctx) error {
 
 	// 1️⃣ Parse request body
@@ -168,4 +175,110 @@ func (server *Server) getNoticesByInstitute(c *fiber.Ctx) error {
 
 	// 4️⃣ Return response
 	return c.JSON(response)
+}
+
+func (server *Server) updateNotice(c *fiber.Ctx) error {
+
+	// 1️⃣ Parse notice ID from URL
+	noticeID, err := c.ParamsInt("id")
+	if err != nil || noticeID <= 0 {
+		return fiber.NewError(
+			fiber.StatusBadRequest,
+			"invalid notice id",
+		)
+	}
+
+	// 2️⃣ Parse request body
+	var req UpdateNoticeRequest
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(
+			fiber.StatusBadRequest,
+			"invalid request body",
+		)
+	}
+
+	// 3️⃣ Validate request
+	if validationErrors := server.validate(req); validationErrors != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(validationErrors)
+	}
+
+	// 4️⃣ Get token payload
+	payload, ok := c.Locals(TokenPayloadKey).(*token.TokenPayload)
+	if !ok {
+		return fiber.NewError(
+			fiber.StatusUnauthorized,
+			"invalid auth context",
+		)
+	}
+
+	// 🔐 ADMIN CHECK (ADDED)
+	if payload.Role != "admin" {
+		return fiber.NewError(
+			fiber.StatusForbidden,
+			"admin access required",
+		)
+	}
+
+	// 5️⃣ Convert description to pgtype.Text
+	desc := pgtype.Text{
+		String: req.Description,
+		Valid:  req.Description != "",
+	}
+
+	// 6️⃣ Convert is_published to pgtype.Bool
+	isPublished := pgtype.Bool{Valid: false}
+	if req.IsPublished != nil {
+		isPublished = pgtype.Bool{
+			Bool:  *req.IsPublished,
+			Valid: true,
+		}
+	}
+
+	// 7️⃣ Convert publish_date to pgtype.Date
+	publishDate := pgtype.Date{Valid: false}
+	if req.PublishDate != "" {
+		if err := publishDate.Scan(req.PublishDate); err != nil {
+			return fiber.NewError(
+				fiber.StatusBadRequest,
+				"publish_date must be YYYY-MM-DD",
+			)
+		}
+	}
+
+	// 8️⃣ Update notice
+	notice, err := server.store.UpdateNotice(
+		c.Context(),
+		pgdb.UpdateNoticeParams{
+			ID:          int32(noticeID),
+			Title:       req.Title,
+			Description: desc,
+			IsPublished: isPublished,
+			PublishDate: publishDate,
+		},
+	)
+	if err != nil {
+		if pgdb.ErrorCode(err) == pgdb.ErrorNoRow {
+			return NotFoundError("notice not found")
+		}
+		return InternalServerError(err.Error())
+	}
+
+	// 9️⃣ Institute ownership check (SECURITY)
+	if notice.InstituteID != payload.InstituteID {
+		return fiber.NewError(
+			fiber.StatusForbidden,
+			"you are not allowed to update this notice",
+		)
+	}
+
+	// 🔟 Response
+	return c.JSON(fiber.Map{
+		"id":           notice.ID,
+		"institute_id": notice.InstituteID,
+		"title":        notice.Title,
+		"description":  notice.Description.String,
+		"is_published": notice.IsPublished.Bool,
+		"publish_date": notice.PublishDate.Time,
+		"created_at":   notice.CreatedAt,
+	})
 }
