@@ -87,7 +87,9 @@ func (server *Server) setupApi() {
 
 	/////////////////////////////////   notice    ////////////////////////////////////////
 
-	app.Post("/notices", server.authMiddleware, server.createNotice)
+	app.Post("/createNotice", server.authMiddleware, server.createNotice)
+	app.Get("/notices/:id", server.authMiddleware, server.getNoticeByID)
+	app.Get("/notices", server.authMiddleware, server.getNoticesByInstitute)
 
 	server.app = app
 

@@ -83,3 +83,89 @@ func (server *Server) createNotice(c *fiber.Ctx) error {
 		"created_at":   notice.CreatedAt,
 	})
 }
+
+func (server *Server) getNoticeByID(c *fiber.Ctx) error {
+
+	// 1️⃣ Read notice ID
+	noticeID, err := c.ParamsInt("id")
+	if err != nil || noticeID <= 0 {
+		return fiber.NewError(
+			fiber.StatusBadRequest,
+			"invalid notice id",
+		)
+	}
+
+	// 2️⃣ Get token payload
+	payload, ok := c.Locals(TokenPayloadKey).(*token.TokenPayload)
+	if !ok {
+		return fiber.NewError(
+			fiber.StatusUnauthorized,
+			"invalid auth context",
+		)
+	}
+
+	// 3️⃣ Fetch notice (USE CORRECT sqlc METHOD)
+	notice, err := server.store.GetNotice(
+		c.Context(),
+		pgdb.GetNoticeParams{
+			ID:          int32(noticeID),
+			InstituteID: payload.InstituteID,
+		},
+	)
+	if err != nil {
+		if pgdb.ErrorCode(err) == pgdb.ErrorNoRow {
+			return NotFoundError("notice not found")
+		}
+		return InternalServerError(err.Error())
+	}
+
+	// 4️⃣ Response
+	return c.JSON(fiber.Map{
+		"id":           notice.ID,
+		"institute_id": notice.InstituteID,
+		"title":        notice.Title,
+		"description":  notice.Description,
+		"is_published": notice.IsPublished,
+		"publish_date": notice.PublishDate,
+		"created_at":   notice.CreatedAt,
+	})
+}
+
+func (server *Server) getNoticesByInstitute(c *fiber.Ctx) error {
+
+	// 1️⃣ Get token payload
+	payload, ok := c.Locals(TokenPayloadKey).(*token.TokenPayload)
+	if !ok {
+		return fiber.NewError(
+			fiber.StatusUnauthorized,
+			"invalid auth context",
+		)
+	}
+
+	// 2️⃣ Fetch notices
+	notices, err := server.store.GetNoticesByInstitute(
+		c.Context(),
+		payload.InstituteID,
+	)
+	if err != nil {
+		return InternalServerError(err.Error())
+	}
+
+	// 3️⃣ Build response
+	response := make([]fiber.Map, 0, len(notices))
+
+	for _, notice := range notices {
+		response = append(response, fiber.Map{
+			"id":           notice.ID,
+			"institute_id": notice.InstituteID,
+			"title":        notice.Title,
+			"description":  notice.Description,
+			"is_published": notice.IsPublished,
+			"publish_date": notice.PublishDate,
+			"created_at":   notice.CreatedAt,
+		})
+	}
+
+	// 4️⃣ Return response
+	return c.JSON(response)
+}
