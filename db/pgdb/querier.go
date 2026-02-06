@@ -47,7 +47,7 @@ type Querier interface {
 	UpdateNotice(ctx context.Context, arg UpdateNoticeParams) (Notice, error)
 	UpdatePhoto(ctx context.Context, arg UpdatePhotoParams) (Photo, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
-	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error
+	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) (UpdateUserPasswordRow, error)
 }
 
 var _ Querier = (*Queries)(nil)

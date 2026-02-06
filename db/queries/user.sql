@@ -56,10 +56,15 @@ RETURNING *;
 
 
 
--- name: UpdateUserPassword :exec
+-- name: UpdateUserPassword :one
 UPDATE users
-SET password = $2
-WHERE id = $1;
+SET
+    password = $1,
+    updated_at = now()
+WHERE
+    id = $2
+    AND institute_id = $3
+RETURNING id, institute_id, name, email, role, is_active, created_at, updated_at;
 
 
 -- name: DisableUser :exec

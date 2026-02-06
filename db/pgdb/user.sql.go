@@ -249,18 +249,46 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 	return i, err
 }
 
-const updateUserPassword = `-- name: UpdateUserPassword :exec
+const updateUserPassword = `-- name: UpdateUserPassword :one
 UPDATE users
-SET password = $2
-WHERE id = $1
+SET
+    password = $1,
+    updated_at = now()
+WHERE
+    id = $2
+    AND institute_id = $3
+RETURNING id, institute_id, name, email, role, is_active, created_at, updated_at
 `
 
 type UpdateUserPasswordParams struct {
-	ID       int32  `json:"id"`
-	Password string `json:"password"`
+	Password    string `json:"password"`
+	ID          int32  `json:"id"`
+	InstituteID int32  `json:"institute_id"`
 }
 
-func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {
-	_, err := q.db.Exec(ctx, updateUserPassword, arg.ID, arg.Password)
-	return err
+type UpdateUserPasswordRow struct {
+	ID          int32              `json:"id"`
+	InstituteID int32              `json:"institute_id"`
+	Name        string             `json:"name"`
+	Email       string             `json:"email"`
+	Role        pgtype.Text        `json:"role"`
+	IsActive    pgtype.Bool        `json:"is_active"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) (UpdateUserPasswordRow, error) {
+	row := q.db.QueryRow(ctx, updateUserPassword, arg.Password, arg.ID, arg.InstituteID)
+	var i UpdateUserPasswordRow
+	err := row.Scan(
+		&i.ID,
+		&i.InstituteID,
+		&i.Name,
+		&i.Email,
+		&i.Role,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
