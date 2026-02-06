@@ -18,7 +18,7 @@ LIMIT 1;
 SELECT *
 FROM users
 WHERE email = $1
-AND is_active = true
+  AND institute_id = $2
 LIMIT 1;
 
 
