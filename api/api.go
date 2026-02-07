@@ -103,6 +103,10 @@ func (server *Server) setupApi() {
 	app.Post("/notices/update/:id", server.authMiddleware, server.updateNotice)
 	app.Post("/notices/:id/delete", server.authMiddleware, server.deleteNotice)
 
+	/////////////////////////////////   photos    ////////////////////////////////////////
+
+	app.Post("/photos", server.authMiddleware, server.createPhoto)
+
 	server.app = app
 
 }
