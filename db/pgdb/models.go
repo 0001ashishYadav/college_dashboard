@@ -48,11 +48,12 @@ type Notice struct {
 }
 
 type Photo struct {
-	ID         int32              `json:"id"`
-	ImageUrl   string             `json:"image_url"`
-	AltText    pgtype.Text        `json:"alt_text"`
-	UploadedBy int32              `json:"uploaded_by"`
-	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	ID          int32              `json:"id"`
+	ImageUrl    string             `json:"image_url"`
+	AltText     pgtype.Text        `json:"alt_text"`
+	UploadedBy  int32              `json:"uploaded_by"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	InstituteID int32              `json:"institute_id"`
 }
 
 type User struct {

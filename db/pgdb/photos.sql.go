@@ -15,21 +15,28 @@ const createPhoto = `-- name: CreatePhoto :one
 INSERT INTO photos (
     image_url,
     alt_text,
-    uploaded_by
+    uploaded_by,
+    institute_id
 ) VALUES (
-    $1, $2, $3
+    $1, $2, $3, $4
 )
-RETURNING id, image_url, alt_text, uploaded_by, created_at
+RETURNING id, image_url, alt_text, uploaded_by, created_at, institute_id
 `
 
 type CreatePhotoParams struct {
-	ImageUrl   string      `json:"image_url"`
-	AltText    pgtype.Text `json:"alt_text"`
-	UploadedBy int32       `json:"uploaded_by"`
+	ImageUrl    string      `json:"image_url"`
+	AltText     pgtype.Text `json:"alt_text"`
+	UploadedBy  int32       `json:"uploaded_by"`
+	InstituteID int32       `json:"institute_id"`
 }
 
 func (q *Queries) CreatePhoto(ctx context.Context, arg CreatePhotoParams) (Photo, error) {
-	row := q.db.QueryRow(ctx, createPhoto, arg.ImageUrl, arg.AltText, arg.UploadedBy)
+	row := q.db.QueryRow(ctx, createPhoto,
+		arg.ImageUrl,
+		arg.AltText,
+		arg.UploadedBy,
+		arg.InstituteID,
+	)
 	var i Photo
 	err := row.Scan(
 		&i.ID,
@@ -37,6 +44,7 @@ func (q *Queries) CreatePhoto(ctx context.Context, arg CreatePhotoParams) (Photo
 		&i.AltText,
 		&i.UploadedBy,
 		&i.CreatedAt,
+		&i.InstituteID,
 	)
 	return i, err
 }
@@ -44,21 +52,55 @@ func (q *Queries) CreatePhoto(ctx context.Context, arg CreatePhotoParams) (Photo
 const deletePhoto = `-- name: DeletePhoto :exec
 DELETE FROM photos
 WHERE id = $1
+AND institute_id = $2
 `
 
-func (q *Queries) DeletePhoto(ctx context.Context, id int32) error {
-	_, err := q.db.Exec(ctx, deletePhoto, id)
+type DeletePhotoParams struct {
+	ID          int32 `json:"id"`
+	InstituteID int32 `json:"institute_id"`
+}
+
+func (q *Queries) DeletePhoto(ctx context.Context, arg DeletePhotoParams) error {
+	_, err := q.db.Exec(ctx, deletePhoto, arg.ID, arg.InstituteID)
 	return err
 }
 
-const getAllPhotos = `-- name: GetAllPhotos :many
-SELECT id, image_url, alt_text, uploaded_by, created_at
+const getPhotoByID = `-- name: GetPhotoByID :one
+SELECT id, image_url, alt_text, uploaded_by, created_at, institute_id
 FROM photos
+WHERE id = $1
+AND institute_id = $2
+LIMIT 1
+`
+
+type GetPhotoByIDParams struct {
+	ID          int32 `json:"id"`
+	InstituteID int32 `json:"institute_id"`
+}
+
+func (q *Queries) GetPhotoByID(ctx context.Context, arg GetPhotoByIDParams) (Photo, error) {
+	row := q.db.QueryRow(ctx, getPhotoByID, arg.ID, arg.InstituteID)
+	var i Photo
+	err := row.Scan(
+		&i.ID,
+		&i.ImageUrl,
+		&i.AltText,
+		&i.UploadedBy,
+		&i.CreatedAt,
+		&i.InstituteID,
+	)
+	return i, err
+}
+
+const getPhotosByInstitute = `-- name: GetPhotosByInstitute :many
+SELECT id, image_url, alt_text, uploaded_by, created_at, institute_id
+FROM photos
+WHERE institute_id = $1
 ORDER BY created_at DESC
 `
 
-func (q *Queries) GetAllPhotos(ctx context.Context) ([]Photo, error) {
-	rows, err := q.db.Query(ctx, getAllPhotos)
+func (q *Queries) GetPhotosByInstitute(ctx context.Context, instituteID int32) ([]Photo, error) {
+	rows, err := q.db.Query(ctx, getPhotosByInstitute, instituteID)
 	if err != nil {
 		return nil, err
 	}
@@ -72,6 +114,7 @@ func (q *Queries) GetAllPhotos(ctx context.Context) ([]Photo, error) {
 			&i.AltText,
 			&i.UploadedBy,
 			&i.CreatedAt,
+			&i.InstituteID,
 		); err != nil {
 			return nil, err
 		}
@@ -83,35 +126,21 @@ func (q *Queries) GetAllPhotos(ctx context.Context) ([]Photo, error) {
 	return items, nil
 }
 
-const getPhotoByID = `-- name: GetPhotoByID :one
-SELECT id, image_url, alt_text, uploaded_by, created_at
-FROM photos
-WHERE id = $1
-LIMIT 1
-`
-
-func (q *Queries) GetPhotoByID(ctx context.Context, id int32) (Photo, error) {
-	row := q.db.QueryRow(ctx, getPhotoByID, id)
-	var i Photo
-	err := row.Scan(
-		&i.ID,
-		&i.ImageUrl,
-		&i.AltText,
-		&i.UploadedBy,
-		&i.CreatedAt,
-	)
-	return i, err
-}
-
 const getPhotosByUser = `-- name: GetPhotosByUser :many
-SELECT id, image_url, alt_text, uploaded_by, created_at
+SELECT id, image_url, alt_text, uploaded_by, created_at, institute_id
 FROM photos
 WHERE uploaded_by = $1
+AND institute_id = $2
 ORDER BY created_at DESC
 `
 
-func (q *Queries) GetPhotosByUser(ctx context.Context, uploadedBy int32) ([]Photo, error) {
-	rows, err := q.db.Query(ctx, getPhotosByUser, uploadedBy)
+type GetPhotosByUserParams struct {
+	UploadedBy  int32 `json:"uploaded_by"`
+	InstituteID int32 `json:"institute_id"`
+}
+
+func (q *Queries) GetPhotosByUser(ctx context.Context, arg GetPhotosByUserParams) ([]Photo, error) {
+	rows, err := q.db.Query(ctx, getPhotosByUser, arg.UploadedBy, arg.InstituteID)
 	if err != nil {
 		return nil, err
 	}
@@ -125,6 +154,7 @@ func (q *Queries) GetPhotosByUser(ctx context.Context, uploadedBy int32) ([]Phot
 			&i.AltText,
 			&i.UploadedBy,
 			&i.CreatedAt,
+			&i.InstituteID,
 		); err != nil {
 			return nil, err
 		}
@@ -139,20 +169,27 @@ func (q *Queries) GetPhotosByUser(ctx context.Context, uploadedBy int32) ([]Phot
 const updatePhoto = `-- name: UpdatePhoto :one
 UPDATE photos
 SET
-    image_url = $2,
-    alt_text = $3
+    image_url = $3,
+    alt_text = $4
 WHERE id = $1
-RETURNING id, image_url, alt_text, uploaded_by, created_at
+AND institute_id = $2
+RETURNING id, image_url, alt_text, uploaded_by, created_at, institute_id
 `
 
 type UpdatePhotoParams struct {
-	ID       int32       `json:"id"`
-	ImageUrl string      `json:"image_url"`
-	AltText  pgtype.Text `json:"alt_text"`
+	ID          int32       `json:"id"`
+	InstituteID int32       `json:"institute_id"`
+	ImageUrl    string      `json:"image_url"`
+	AltText     pgtype.Text `json:"alt_text"`
 }
 
 func (q *Queries) UpdatePhoto(ctx context.Context, arg UpdatePhotoParams) (Photo, error) {
-	row := q.db.QueryRow(ctx, updatePhoto, arg.ID, arg.ImageUrl, arg.AltText)
+	row := q.db.QueryRow(ctx, updatePhoto,
+		arg.ID,
+		arg.InstituteID,
+		arg.ImageUrl,
+		arg.AltText,
+	)
 	var i Photo
 	err := row.Scan(
 		&i.ID,
@@ -160,6 +197,7 @@ func (q *Queries) UpdatePhoto(ctx context.Context, arg UpdatePhotoParams) (Photo
 		&i.AltText,
 		&i.UploadedBy,
 		&i.CreatedAt,
+		&i.InstituteID,
 	)
 	return i, err
 }
