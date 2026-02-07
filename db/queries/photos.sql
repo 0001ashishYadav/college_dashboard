@@ -3,9 +3,10 @@ INSERT INTO photos (
     image_url,
     alt_text,
     uploaded_by,
-    institute_id
+    institute_id,
+    cloudinary_public_id
 ) VALUES (
-    $1, $2, $3, $4
+    $1, $2, $3, $4, $5
 )
 RETURNING *;
 
@@ -28,6 +29,7 @@ ORDER BY created_at DESC;
 
 
 
+
 -- name: UpdatePhotoImage :one
 UPDATE photos
 SET
@@ -37,6 +39,7 @@ SET
 WHERE id = $1
 AND institute_id = $2
 RETURNING *;
+
 
 
 

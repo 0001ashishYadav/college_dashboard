@@ -16,18 +16,20 @@ INSERT INTO photos (
     image_url,
     alt_text,
     uploaded_by,
-    institute_id
+    institute_id,
+    cloudinary_public_id
 ) VALUES (
-    $1, $2, $3, $4
+    $1, $2, $3, $4, $5
 )
-RETURNING id, image_url, alt_text, uploaded_by, created_at, institute_id, cloudinary_public_id
+RETURNING id, image_url, alt_text, uploaded_by, created_at, institute_id, cloudinary_public_id, updated_at
 `
 
 type CreatePhotoParams struct {
-	ImageUrl    string      `json:"image_url"`
-	AltText     pgtype.Text `json:"alt_text"`
-	UploadedBy  int32       `json:"uploaded_by"`
-	InstituteID int32       `json:"institute_id"`
+	ImageUrl           string      `json:"image_url"`
+	AltText            pgtype.Text `json:"alt_text"`
+	UploadedBy         int32       `json:"uploaded_by"`
+	InstituteID        int32       `json:"institute_id"`
+	CloudinaryPublicID pgtype.Text `json:"cloudinary_public_id"`
 }
 
 func (q *Queries) CreatePhoto(ctx context.Context, arg CreatePhotoParams) (Photo, error) {
@@ -36,6 +38,7 @@ func (q *Queries) CreatePhoto(ctx context.Context, arg CreatePhotoParams) (Photo
 		arg.AltText,
 		arg.UploadedBy,
 		arg.InstituteID,
+		arg.CloudinaryPublicID,
 	)
 	var i Photo
 	err := row.Scan(
@@ -46,6 +49,7 @@ func (q *Queries) CreatePhoto(ctx context.Context, arg CreatePhotoParams) (Photo
 		&i.CreatedAt,
 		&i.InstituteID,
 		&i.CloudinaryPublicID,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -67,7 +71,7 @@ func (q *Queries) DeletePhoto(ctx context.Context, arg DeletePhotoParams) error 
 }
 
 const getPhotoByID = `-- name: GetPhotoByID :one
-SELECT id, image_url, alt_text, uploaded_by, created_at, institute_id, cloudinary_public_id
+SELECT id, image_url, alt_text, uploaded_by, created_at, institute_id, cloudinary_public_id, updated_at
 FROM photos
 WHERE id = $1
 AND institute_id = $2
@@ -90,12 +94,13 @@ func (q *Queries) GetPhotoByID(ctx context.Context, arg GetPhotoByIDParams) (Pho
 		&i.CreatedAt,
 		&i.InstituteID,
 		&i.CloudinaryPublicID,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const getPhotosByInstitute = `-- name: GetPhotosByInstitute :many
-SELECT id, image_url, alt_text, uploaded_by, created_at, institute_id, cloudinary_public_id
+SELECT id, image_url, alt_text, uploaded_by, created_at, institute_id, cloudinary_public_id, updated_at
 FROM photos
 WHERE institute_id = $1
 ORDER BY created_at DESC
@@ -118,6 +123,7 @@ func (q *Queries) GetPhotosByInstitute(ctx context.Context, instituteID int32) (
 			&i.CreatedAt,
 			&i.InstituteID,
 			&i.CloudinaryPublicID,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -130,7 +136,7 @@ func (q *Queries) GetPhotosByInstitute(ctx context.Context, instituteID int32) (
 }
 
 const getPhotosByUser = `-- name: GetPhotosByUser :many
-SELECT id, image_url, alt_text, uploaded_by, created_at, institute_id, cloudinary_public_id
+SELECT id, image_url, alt_text, uploaded_by, created_at, institute_id, cloudinary_public_id, updated_at
 FROM photos
 WHERE uploaded_by = $1
 AND institute_id = $2
@@ -159,6 +165,7 @@ func (q *Queries) GetPhotosByUser(ctx context.Context, arg GetPhotosByUserParams
 			&i.CreatedAt,
 			&i.InstituteID,
 			&i.CloudinaryPublicID,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -178,7 +185,7 @@ SET
     updated_at = now()
 WHERE id = $1
 AND institute_id = $2
-RETURNING id, image_url, alt_text, uploaded_by, created_at, institute_id, cloudinary_public_id
+RETURNING id, image_url, alt_text, uploaded_by, created_at, institute_id, cloudinary_public_id, updated_at
 `
 
 type UpdatePhotoImageParams struct {
@@ -204,6 +211,7 @@ func (q *Queries) UpdatePhotoImage(ctx context.Context, arg UpdatePhotoImagePara
 		&i.CreatedAt,
 		&i.InstituteID,
 		&i.CloudinaryPublicID,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
