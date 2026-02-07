@@ -124,3 +124,47 @@ func (server *Server) getPhotoByID(c *fiber.Ctx) error {
 		"created_at":   photo.CreatedAt,
 	})
 }
+
+func (server *Server) getPhotosByInstitute(c *fiber.Ctx) error {
+
+	// 1️⃣ Get token payload
+	payload, ok := c.Locals(TokenPayloadKey).(*token.TokenPayload)
+	if !ok {
+		return fiber.NewError(
+			fiber.StatusUnauthorized,
+			"invalid auth context",
+		)
+	}
+
+	// 2️⃣ Fetch photos (INSTITUTE SCOPED)
+	photos, err := server.store.GetPhotosByInstitute(
+		c.Context(),
+		payload.InstituteID,
+	)
+	if err != nil {
+		return InternalServerError(err.Error())
+	}
+
+	// 3️⃣ Build safe response
+	response := make([]fiber.Map, 0, len(photos))
+
+	for _, photo := range photos {
+
+		altText := ""
+		if photo.AltText.Valid {
+			altText = photo.AltText.String
+		}
+
+		response = append(response, fiber.Map{
+			"id":           photo.ID,
+			"image_url":    photo.ImageUrl,
+			"alt_text":     altText,
+			"uploaded_by":  photo.UploadedBy,
+			"institute_id": photo.InstituteID,
+			"created_at":   photo.CreatedAt,
+		})
+	}
+
+	// 4️⃣ Return response
+	return c.JSON(response)
+}
