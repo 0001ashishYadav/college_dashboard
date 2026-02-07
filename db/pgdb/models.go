@@ -55,6 +55,7 @@ type Photo struct {
 	CreatedAt          pgtype.Timestamptz `json:"created_at"`
 	InstituteID        int32              `json:"institute_id"`
 	CloudinaryPublicID pgtype.Text        `json:"cloudinary_public_id"`
+	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
 }
 
 type User struct {
