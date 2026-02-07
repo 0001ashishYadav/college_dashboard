@@ -19,12 +19,11 @@ type Querier interface {
 	DeleteCarouselPhoto(ctx context.Context, id int32) error
 	DeleteInstitute(ctx context.Context, id int32) error
 	DeleteNotice(ctx context.Context, id int32) error
-	DeletePhoto(ctx context.Context, id int32) error
+	DeletePhoto(ctx context.Context, arg DeletePhotoParams) error
 	DeleteUser(ctx context.Context, id int32) error
 	DisableInstitute(ctx context.Context, id int32) error
 	DisableUser(ctx context.Context, arg DisableUserParams) (DisableUserRow, error)
 	GetAllInstitutes(ctx context.Context) ([]Institute, error)
-	GetAllPhotos(ctx context.Context) ([]Photo, error)
 	GetCarousel(ctx context.Context, arg GetCarouselParams) (Carousel, error)
 	GetCarouselPhotoByID(ctx context.Context, id int32) (CarouselPhoto, error)
 	GetCarouselPhotosByCarouselID(ctx context.Context, carouselID int32) ([]GetCarouselPhotosByCarouselIDRow, error)
@@ -33,8 +32,9 @@ type Querier interface {
 	GetInstituteByID(ctx context.Context, id int32) (Institute, error)
 	GetNotice(ctx context.Context, arg GetNoticeParams) (Notice, error)
 	GetNoticesByInstitute(ctx context.Context, instituteID int32) ([]Notice, error)
-	GetPhotoByID(ctx context.Context, id int32) (Photo, error)
-	GetPhotosByUser(ctx context.Context, uploadedBy int32) ([]Photo, error)
+	GetPhotoByID(ctx context.Context, arg GetPhotoByIDParams) (Photo, error)
+	GetPhotosByInstitute(ctx context.Context, instituteID int32) ([]Photo, error)
+	GetPhotosByUser(ctx context.Context, arg GetPhotosByUserParams) ([]Photo, error)
 	GetUserByEmail(ctx context.Context, arg GetUserByEmailParams) (User, error)
 	GetUserByID(ctx context.Context, arg GetUserByIDParams) (User, error)
 	GetUsersByInstitute(ctx context.Context, instituteID int32) ([]User, error)

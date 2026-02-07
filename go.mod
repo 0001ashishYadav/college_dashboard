@@ -13,10 +13,13 @@ require (
 require (
 	aidanwoods.dev/go-result v0.3.1 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
+	github.com/cloudinary/cloudinary-go/v2 v2.14.1 // indirect
+	github.com/creasty/defaults v1.7.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.12 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/gorilla/schema v1.4.1 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/puddle/v2 v2.2.2 // indirect

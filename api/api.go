@@ -17,11 +17,12 @@ import (
 )
 
 type Server struct {
-	app    *fiber.App
-	store  pgdb.Store
-	valid  *validator.Validate
-	config utils.Config
-	token  token.Maker
+	app        *fiber.App
+	store      pgdb.Store
+	valid      *validator.Validate
+	config     utils.Config
+	token      token.Maker
+	cloudinary *utils.CloudinaryUploader
 }
 
 func NewServer(config utils.Config, store pgdb.Store, tokenMaker token.Maker) (*Server, error) {
@@ -31,11 +32,19 @@ func NewServer(config utils.Config, store pgdb.Store, tokenMaker token.Maker) (*
 	if tokenMaker == nil {
 		return nil, errors.New("tokenMaker cannot be nil")
 	}
+
+	// 🔥 INIT CLOUDINARY
+	cloudinaryUploader, err := utils.NewCloudinaryUploader()
+	if err != nil {
+		return nil, err
+	}
+
 	server := &Server{
-		valid:  validator.New(),
-		config: config,
-		store:  store,
-		token:  tokenMaker,
+		valid:      validator.New(),
+		config:     config,
+		store:      store,
+		token:      tokenMaker,
+		cloudinary: cloudinaryUploader,
 	}
 	server.setupApi()
 	return server, nil
