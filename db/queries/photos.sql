@@ -19,6 +19,7 @@ LIMIT 1;
 
 
 
+
 -- name: GetPhotosByInstitute :many
 SELECT *
 FROM photos
@@ -27,11 +28,12 @@ ORDER BY created_at DESC;
 
 
 
--- name: UpdatePhoto :one
+-- name: UpdatePhotoImage :one
 UPDATE photos
 SET
     image_url = $3,
-    alt_text = $4
+    cloudinary_public_id = $4,
+    updated_at = now()
 WHERE id = $1
 AND institute_id = $2
 RETURNING *;

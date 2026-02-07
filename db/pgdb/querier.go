@@ -45,7 +45,7 @@ type Querier interface {
 	UpdateCarouselPhoto(ctx context.Context, arg UpdateCarouselPhotoParams) (CarouselPhoto, error)
 	UpdateInstitute(ctx context.Context, arg UpdateInstituteParams) (Institute, error)
 	UpdateNotice(ctx context.Context, arg UpdateNoticeParams) (Notice, error)
-	UpdatePhoto(ctx context.Context, arg UpdatePhotoParams) (Photo, error)
+	UpdatePhotoImage(ctx context.Context, arg UpdatePhotoImageParams) (Photo, error)
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 	UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) (UpdateUserPasswordRow, error)
 }
