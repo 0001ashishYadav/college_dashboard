@@ -17,12 +17,11 @@ import (
 )
 
 type Server struct {
-	app        *fiber.App
-	store      pgdb.Store
-	valid      *validator.Validate
-	config     utils.Config
-	token      token.Maker
-	cloudinary *utils.CloudinaryUploader
+	app    *fiber.App
+	store  pgdb.Store
+	valid  *validator.Validate
+	config utils.Config
+	token  token.Maker
 }
 
 func NewServer(config utils.Config, store pgdb.Store, tokenMaker token.Maker) (*Server, error) {
@@ -33,18 +32,11 @@ func NewServer(config utils.Config, store pgdb.Store, tokenMaker token.Maker) (*
 		return nil, errors.New("tokenMaker cannot be nil")
 	}
 
-	// 🔥 INIT CLOUDINARY
-	cloudinaryUploader, err := utils.NewCloudinaryUploader()
-	if err != nil {
-		return nil, err
-	}
-
 	server := &Server{
-		valid:      validator.New(),
-		config:     config,
-		store:      store,
-		token:      tokenMaker,
-		cloudinary: cloudinaryUploader,
+		valid:  validator.New(),
+		config: config,
+		store:  store,
+		token:  tokenMaker,
 	}
 	server.setupApi()
 	return server, nil
@@ -108,6 +100,7 @@ func (server *Server) setupApi() {
 	app.Post("/photos", server.authMiddleware, server.createPhoto)
 	app.Get("/photos/:id", server.authMiddleware, server.getPhotoByID)
 	app.Get("/photos", server.authMiddleware, server.getPhotosByInstitute)
+	app.Post("/photos/:id/image", server.authMiddleware, server.replacePhoto)
 
 	server.app = app
 

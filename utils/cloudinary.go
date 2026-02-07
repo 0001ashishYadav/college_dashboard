@@ -2,47 +2,57 @@ package utils
 
 import (
 	"context"
-	"mime/multipart"
+	"io"
 	"os"
 
 	"github.com/cloudinary/cloudinary-go/v2"
 	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
 )
 
-type CloudinaryUploader struct {
-	cld *cloudinary.Cloudinary
-}
+func UploadImageStream(
+	ctx context.Context,
+	file io.Reader,
+	folder string,
+) (string, string, error) {
 
-func NewCloudinaryUploader() (*CloudinaryUploader, error) {
 	cld, err := cloudinary.NewFromParams(
 		os.Getenv("CLOUDINARY_CLOUD_NAME"),
 		os.Getenv("CLOUDINARY_API_KEY"),
 		os.Getenv("CLOUDINARY_API_SECRET"),
 	)
 	if err != nil {
-		return nil, err
+		return "", "", err
 	}
 
-	return &CloudinaryUploader{cld: cld}, nil
-}
-
-func (u *CloudinaryUploader) UploadImage(
-	ctx context.Context,
-	file multipart.File,
-	folder string,
-) (string, error) {
-
-	resp, err := u.cld.Upload.Upload(
+	resp, err := cld.Upload.Upload(
 		ctx,
 		file,
 		uploader.UploadParams{
-			Folder:       folder,
-			ResourceType: "image",
+			Folder: folder,
 		},
 	)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	return resp.SecureURL, nil
+	return resp.SecureURL, resp.PublicID, nil
+}
+
+func DeleteImage(ctx context.Context, publicID string) error {
+	cld, err := cloudinary.NewFromParams(
+		os.Getenv("CLOUDINARY_CLOUD_NAME"),
+		os.Getenv("CLOUDINARY_API_KEY"),
+		os.Getenv("CLOUDINARY_API_SECRET"),
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = cld.Upload.Destroy(
+		ctx,
+		uploader.DestroyParams{
+			PublicID: publicID,
+		},
+	)
+	return err
 }
