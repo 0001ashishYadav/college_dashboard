@@ -106,6 +106,7 @@ func (server *Server) setupApi() {
 	/////////////////////////////////   photos    ////////////////////////////////////////
 
 	app.Post("/photos", server.authMiddleware, server.createPhoto)
+	app.Get("/photos/:id", server.authMiddleware, server.getPhotoByID)
 
 	server.app = app
 

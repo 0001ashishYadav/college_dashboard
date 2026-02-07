@@ -72,3 +72,55 @@ func (server *Server) createPhoto(c *fiber.Ctx) error {
 		"created_at":   photo.CreatedAt,
 	})
 }
+
+func (server *Server) getPhotoByID(c *fiber.Ctx) error {
+
+	// 1️⃣ Parse photo ID from URL
+	photoID, err := c.ParamsInt("id")
+	if err != nil || photoID <= 0 {
+		return fiber.NewError(
+			fiber.StatusBadRequest,
+			"invalid photo id",
+		)
+	}
+
+	// 2️⃣ Get token payload
+	payload, ok := c.Locals(TokenPayloadKey).(*token.TokenPayload)
+	if !ok {
+		return fiber.NewError(
+			fiber.StatusUnauthorized,
+			"invalid auth context",
+		)
+	}
+
+	// 3️⃣ Fetch photo (INSTITUTE SCOPED)
+	photo, err := server.store.GetPhotoByID(
+		c.Context(),
+		pgdb.GetPhotoByIDParams{
+			ID:          int32(photoID),
+			InstituteID: payload.InstituteID,
+		},
+	)
+	if err != nil {
+		if pgdb.ErrorCode(err) == pgdb.ErrorNoRow {
+			return NotFoundError("photo not found")
+		}
+		return InternalServerError(err.Error())
+	}
+
+	// 4️⃣ Safe alt_text
+	altText := ""
+	if photo.AltText.Valid {
+		altText = photo.AltText.String
+	}
+
+	// 5️⃣ Response
+	return c.JSON(fiber.Map{
+		"id":           photo.ID,
+		"image_url":    photo.ImageUrl,
+		"alt_text":     altText,
+		"uploaded_by":  photo.UploadedBy,
+		"institute_id": photo.InstituteID,
+		"created_at":   photo.CreatedAt,
+	})
+}
