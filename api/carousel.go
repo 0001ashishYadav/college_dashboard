@@ -107,3 +107,37 @@ func (server *Server) getCarouselByID(c *fiber.Ctx) error {
 
 	return c.JSON(carousel)
 }
+
+func (server *Server) getCarouselsByInstitute(c *fiber.Ctx) error {
+	// 🔐 AUTH PAYLOAD
+	payload, ok := c.Locals(TokenPayloadKey).(*token.TokenPayload)
+	if !ok {
+		return fiber.NewError(
+			fiber.StatusUnauthorized,
+			"unauthorized",
+		)
+	}
+
+	// 🧠 FETCH CAROUSELS (INSTITUTE SCOPED)
+	carousels, err := server.store.GetCarouselsByInstitute(
+		c.Context(),
+		payload.InstituteID,
+	)
+	if err != nil {
+		return InternalServerError(err.Error())
+	}
+
+	// 📤 RESPONSE FORMAT
+	result := make([]fiber.Map, 0, len(carousels))
+	for _, csl := range carousels {
+		result = append(result, fiber.Map{
+			"id":           csl.ID,
+			"institute_id": csl.InstituteID,
+			"title":        csl.Title,
+			"is_active":    csl.IsActive,
+			"created_at":   csl.CreatedAt,
+		})
+	}
+
+	return c.JSON(result)
+}
