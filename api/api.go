@@ -103,6 +103,10 @@ func (server *Server) setupApi() {
 	app.Post("/photos/:id/image", server.authMiddleware, server.replacePhoto)
 	app.Delete("/photos/:id", server.authMiddleware, server.deletePhoto)
 
+	////////////////////////////// carousel ////////////////////////////////////////////
+
+	app.Post("/create_carousel", server.authMiddleware, server.createCarousel)
+
 	server.app = app
 
 }
