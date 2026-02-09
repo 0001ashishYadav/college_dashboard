@@ -241,3 +241,71 @@ func (server *Server) replacePhoto(c *fiber.Ctx) error {
 
 	return c.JSON(photo)
 }
+
+func (server *Server) deletePhoto(c *fiber.Ctx) error {
+	// 1️⃣ Parse photo ID
+	photoID, err := c.ParamsInt("id")
+	if err != nil || photoID <= 0 {
+		return fiber.NewError(
+			fiber.StatusBadRequest,
+			"invalid photo id",
+		)
+	}
+
+	// 2️⃣ Auth payload
+	payload, ok := c.Locals(TokenPayloadKey).(*token.TokenPayload)
+	if !ok {
+		return fiber.NewError(
+			fiber.StatusUnauthorized,
+			"unauthorized",
+		)
+	}
+
+	// 3️⃣ Admin check
+	if payload.Role != "admin" {
+		return fiber.NewError(
+			fiber.StatusForbidden,
+			"admin access required",
+		)
+	}
+
+	// 4️⃣ Fetch photo (INSTITUTE SCOPED)
+	photo, err := server.store.GetPhotoByID(
+		c.Context(),
+		pgdb.GetPhotoByIDParams{
+			ID:          int32(photoID),
+			InstituteID: payload.InstituteID,
+		},
+	)
+	if err != nil {
+		if pgdb.ErrorCode(err) == pgdb.ErrorNoRow {
+			return NotFoundError("photo not found")
+		}
+		return InternalServerError(err.Error())
+	}
+
+	// 5️⃣ Delete image from Cloudinary (SAFE)
+	if photo.CloudinaryPublicID.Valid {
+		_ = utils.DeleteImage(
+			c.Context(),
+			photo.CloudinaryPublicID.String,
+		)
+	}
+
+	// 6️⃣ Delete DB record
+	err = server.store.DeletePhoto(
+		c.Context(),
+		pgdb.DeletePhotoParams{
+			ID:          int32(photoID),
+			InstituteID: payload.InstituteID,
+		},
+	)
+	if err != nil {
+		return InternalServerError(err.Error())
+	}
+
+	// 7️⃣ Response
+	return c.JSON(fiber.Map{
+		"message": "photo deleted successfully",
+	})
+}
