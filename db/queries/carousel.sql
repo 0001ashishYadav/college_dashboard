@@ -11,7 +11,8 @@ RETURNING *;
 -- name: GetCarousel :one
 SELECT *
 FROM carousels
-WHERE id = $1 AND institute_id = $2
+WHERE id = $1
+AND institute_id = $2
 LIMIT 1;
 
 -- name: GetCarouselsByInstitute :many
@@ -23,11 +24,13 @@ ORDER BY created_at DESC;
 -- name: UpdateCarousel :one
 UPDATE carousels
 SET
-    title = $2,
-    is_active = $3
+    title = $3,
+    is_active = $4
 WHERE id = $1
+AND institute_id = $2
 RETURNING *;
 
 -- name: DeleteCarousel :exec
 DELETE FROM carousels
-WHERE id = $1;
+WHERE id = $1
+AND institute_id = $2;

@@ -44,17 +44,24 @@ func (q *Queries) CreateCarousel(ctx context.Context, arg CreateCarouselParams) 
 const deleteCarousel = `-- name: DeleteCarousel :exec
 DELETE FROM carousels
 WHERE id = $1
+AND institute_id = $2
 `
 
-func (q *Queries) DeleteCarousel(ctx context.Context, id int32) error {
-	_, err := q.db.Exec(ctx, deleteCarousel, id)
+type DeleteCarouselParams struct {
+	ID          int32 `json:"id"`
+	InstituteID int32 `json:"institute_id"`
+}
+
+func (q *Queries) DeleteCarousel(ctx context.Context, arg DeleteCarouselParams) error {
+	_, err := q.db.Exec(ctx, deleteCarousel, arg.ID, arg.InstituteID)
 	return err
 }
 
 const getCarousel = `-- name: GetCarousel :one
 SELECT id, institute_id, title, is_active, created_at
 FROM carousels
-WHERE id = $1 AND institute_id = $2
+WHERE id = $1
+AND institute_id = $2
 LIMIT 1
 `
 
@@ -112,20 +119,27 @@ func (q *Queries) GetCarouselsByInstitute(ctx context.Context, instituteID int32
 const updateCarousel = `-- name: UpdateCarousel :one
 UPDATE carousels
 SET
-    title = $2,
-    is_active = $3
+    title = $3,
+    is_active = $4
 WHERE id = $1
+AND institute_id = $2
 RETURNING id, institute_id, title, is_active, created_at
 `
 
 type UpdateCarouselParams struct {
-	ID       int32       `json:"id"`
-	Title    pgtype.Text `json:"title"`
-	IsActive pgtype.Bool `json:"is_active"`
+	ID          int32       `json:"id"`
+	InstituteID int32       `json:"institute_id"`
+	Title       pgtype.Text `json:"title"`
+	IsActive    pgtype.Bool `json:"is_active"`
 }
 
 func (q *Queries) UpdateCarousel(ctx context.Context, arg UpdateCarouselParams) (Carousel, error) {
-	row := q.db.QueryRow(ctx, updateCarousel, arg.ID, arg.Title, arg.IsActive)
+	row := q.db.QueryRow(ctx, updateCarousel,
+		arg.ID,
+		arg.InstituteID,
+		arg.Title,
+		arg.IsActive,
+	)
 	var i Carousel
 	err := row.Scan(
 		&i.ID,

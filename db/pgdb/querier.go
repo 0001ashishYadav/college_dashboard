@@ -15,7 +15,7 @@ type Querier interface {
 	CreateNotice(ctx context.Context, arg CreateNoticeParams) (Notice, error)
 	CreatePhoto(ctx context.Context, arg CreatePhotoParams) (Photo, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
-	DeleteCarousel(ctx context.Context, id int32) error
+	DeleteCarousel(ctx context.Context, arg DeleteCarouselParams) error
 	DeleteCarouselPhoto(ctx context.Context, id int32) error
 	DeleteInstitute(ctx context.Context, id int32) error
 	DeleteNotice(ctx context.Context, id int32) error
