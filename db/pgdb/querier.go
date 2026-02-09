@@ -24,9 +24,9 @@ type Querier interface {
 	DisableInstitute(ctx context.Context, id int32) error
 	DisableUser(ctx context.Context, arg DisableUserParams) (DisableUserRow, error)
 	GetAllInstitutes(ctx context.Context) ([]Institute, error)
-	GetCarousel(ctx context.Context, arg GetCarouselParams) (Carousel, error)
 	GetCarouselPhotoByID(ctx context.Context, id int32) (CarouselPhoto, error)
 	GetCarouselPhotosByCarouselID(ctx context.Context, carouselID int32) ([]GetCarouselPhotosByCarouselIDRow, error)
+	GetCarouselWithPhotos(ctx context.Context, arg GetCarouselWithPhotosParams) ([]GetCarouselWithPhotosRow, error)
 	GetCarouselsByInstitute(ctx context.Context, instituteID int32) ([]Carousel, error)
 	GetInstituteByCode(ctx context.Context, code string) (Institute, error)
 	GetInstituteByID(ctx context.Context, id int32) (Institute, error)

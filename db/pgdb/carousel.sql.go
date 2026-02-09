@@ -57,30 +57,78 @@ func (q *Queries) DeleteCarousel(ctx context.Context, arg DeleteCarouselParams) 
 	return err
 }
 
-const getCarousel = `-- name: GetCarousel :one
-SELECT id, institute_id, title, is_active, created_at
-FROM carousels
-WHERE id = $1
-AND institute_id = $2
-LIMIT 1
+const getCarouselWithPhotos = `-- name: GetCarouselWithPhotos :many
+SELECT
+    c.id              AS carousel_id,
+    c.institute_id,
+    c.title,
+    c.is_active,
+    c.created_at,
+
+    cp.id             AS carousel_photo_id,
+    cp.display_text,
+    cp.display_order,
+
+    p.id              AS photo_id,
+    p.image_url,
+    p.alt_text
+FROM carousels c
+LEFT JOIN carousel_photos cp ON cp.carousel_id = c.id
+LEFT JOIN photos p ON p.id = cp.photo_id
+WHERE c.id = $1
+  AND c.institute_id = $2
+ORDER BY cp.display_order ASC
 `
 
-type GetCarouselParams struct {
+type GetCarouselWithPhotosParams struct {
 	ID          int32 `json:"id"`
 	InstituteID int32 `json:"institute_id"`
 }
 
-func (q *Queries) GetCarousel(ctx context.Context, arg GetCarouselParams) (Carousel, error) {
-	row := q.db.QueryRow(ctx, getCarousel, arg.ID, arg.InstituteID)
-	var i Carousel
-	err := row.Scan(
-		&i.ID,
-		&i.InstituteID,
-		&i.Title,
-		&i.IsActive,
-		&i.CreatedAt,
-	)
-	return i, err
+type GetCarouselWithPhotosRow struct {
+	CarouselID      int32              `json:"carousel_id"`
+	InstituteID     int32              `json:"institute_id"`
+	Title           pgtype.Text        `json:"title"`
+	IsActive        pgtype.Bool        `json:"is_active"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	CarouselPhotoID pgtype.Int4        `json:"carousel_photo_id"`
+	DisplayText     pgtype.Text        `json:"display_text"`
+	DisplayOrder    pgtype.Int4        `json:"display_order"`
+	PhotoID         pgtype.Int4        `json:"photo_id"`
+	ImageUrl        pgtype.Text        `json:"image_url"`
+	AltText         pgtype.Text        `json:"alt_text"`
+}
+
+func (q *Queries) GetCarouselWithPhotos(ctx context.Context, arg GetCarouselWithPhotosParams) ([]GetCarouselWithPhotosRow, error) {
+	rows, err := q.db.Query(ctx, getCarouselWithPhotos, arg.ID, arg.InstituteID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetCarouselWithPhotosRow{}
+	for rows.Next() {
+		var i GetCarouselWithPhotosRow
+		if err := rows.Scan(
+			&i.CarouselID,
+			&i.InstituteID,
+			&i.Title,
+			&i.IsActive,
+			&i.CreatedAt,
+			&i.CarouselPhotoID,
+			&i.DisplayText,
+			&i.DisplayOrder,
+			&i.PhotoID,
+			&i.ImageUrl,
+			&i.AltText,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getCarouselsByInstitute = `-- name: GetCarouselsByInstitute :many
