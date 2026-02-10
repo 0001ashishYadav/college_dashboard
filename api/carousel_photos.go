@@ -94,13 +94,16 @@ func (server *Server) createCarouselPhoto(c *fiber.Ctx) error {
 }
 
 func (server *Server) getCarouselPhotoByID(c *fiber.Ctx) error {
+	// 🔐 Auth
 	payload := c.Locals(TokenPayloadKey).(*token.TokenPayload)
 
+	// 📌 carousel_photo_id
 	id, err := c.ParamsInt("id")
 	if err != nil || id <= 0 {
 		return fiber.NewError(400, "invalid carousel photo id")
 	}
 
+	// 📦 Fetch carousel photo with image
 	row, err := server.store.GetCarouselPhotoWithImage(
 		c.Context(),
 		int32(id),
@@ -109,7 +112,8 @@ func (server *Server) getCarouselPhotoByID(c *fiber.Ctx) error {
 		return NotFoundError("carousel photo not found")
 	}
 
-	// 🔐 Institute security
+	// 🔐 Institute-level security
+	// Verify carousel belongs to same institute
 	_, err = server.store.GetCarouselWithPhotos(
 		c.Context(),
 		pgdb.GetCarouselWithPhotosParams{
@@ -118,9 +122,13 @@ func (server *Server) getCarouselPhotoByID(c *fiber.Ctx) error {
 		},
 	)
 	if err != nil {
-		return fiber.NewError(403, "access denied")
+		return fiber.NewError(
+			fiber.StatusForbidden,
+			"access denied",
+		)
 	}
 
+	// ✅ Response
 	return c.JSON(fiber.Map{
 		"id":            row.ID,
 		"carousel_id":   row.CarouselID,
