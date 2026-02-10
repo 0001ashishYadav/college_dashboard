@@ -140,3 +140,52 @@ func (server *Server) getCarouselPhotoByID(c *fiber.Ctx) error {
 		"created_at":    row.CreatedAt,
 	})
 }
+
+func (server *Server) getCarouselPhotosByCarouselID(c *fiber.Ctx) error {
+	// 🔐 Auth payload
+	payload := c.Locals(TokenPayloadKey).(*token.TokenPayload)
+
+	// 📌 Carousel ID from route
+	carouselID, err := c.ParamsInt("id")
+	if err != nil || carouselID <= 0 {
+		return fiber.NewError(400, "invalid carousel id")
+	}
+
+	// 🔐 Institute security check
+	_, err = server.store.GetCarouselWithPhotos(
+		c.Context(),
+		pgdb.GetCarouselWithPhotosParams{
+			ID:          int32(carouselID),
+			InstituteID: payload.InstituteID,
+		},
+	)
+	if err != nil {
+		return fiber.NewError(403, "access denied")
+	}
+
+	// 📦 Fetch carousel photos
+	rows, err := server.store.GetCarouselPhotosByCarouselID(
+		c.Context(),
+		int32(carouselID),
+	)
+	if err != nil {
+		return InternalServerError(err.Error())
+	}
+
+	// 🧾 Response mapping
+	result := make([]fiber.Map, 0, len(rows))
+	for _, row := range rows {
+		result = append(result, fiber.Map{
+			"id":            row.ID,
+			"carousel_id":   row.CarouselID,
+			"photo_id":      row.PhotoID,
+			"display_text":  row.DisplayText.String,
+			"display_order": row.DisplayOrder.Int32,
+			"image_url":     row.ImageUrl,
+			"alt_text":      row.AltText.String,
+			"created_at":    row.CreatedAt,
+		})
+	}
+
+	return c.JSON(result)
+}

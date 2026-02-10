@@ -113,6 +113,7 @@ func (server *Server) setupApi() {
 
 	app.Post("/carousels/:id/photos", server.authMiddleware, server.createCarouselPhoto)
 	app.Post("/carousel-photos/:id", server.authMiddleware, server.getCarouselPhotoByID)
+	app.Get("/carousels/:id/photos", server.authMiddleware, server.getCarouselPhotosByCarouselID)
 
 	server.app = app
 
