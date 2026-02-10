@@ -92,3 +92,43 @@ func (server *Server) createCarouselPhoto(c *fiber.Ctx) error {
 
 	return c.Status(201).JSON(photo)
 }
+
+func (server *Server) getCarouselPhotoByID(c *fiber.Ctx) error {
+	payload := c.Locals(TokenPayloadKey).(*token.TokenPayload)
+
+	id, err := c.ParamsInt("id")
+	if err != nil || id <= 0 {
+		return fiber.NewError(400, "invalid carousel photo id")
+	}
+
+	row, err := server.store.GetCarouselPhotoWithImage(
+		c.Context(),
+		int32(id),
+	)
+	if err != nil {
+		return NotFoundError("carousel photo not found")
+	}
+
+	// 🔐 Institute security
+	_, err = server.store.GetCarouselWithPhotos(
+		c.Context(),
+		pgdb.GetCarouselWithPhotosParams{
+			ID:          row.CarouselID,
+			InstituteID: payload.InstituteID,
+		},
+	)
+	if err != nil {
+		return fiber.NewError(403, "access denied")
+	}
+
+	return c.JSON(fiber.Map{
+		"id":            row.ID,
+		"carousel_id":   row.CarouselID,
+		"photo_id":      row.PhotoID,
+		"display_text":  row.DisplayText.String,
+		"display_order": row.DisplayOrder.Int32,
+		"image_url":     row.ImageUrl,
+		"alt_text":      row.AltText.String,
+		"created_at":    row.CreatedAt,
+	})
+}

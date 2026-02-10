@@ -59,16 +59,35 @@ func (q *Queries) DeleteCarouselPhoto(ctx context.Context, id int32) error {
 	return err
 }
 
-const getCarouselPhotoByID = `-- name: GetCarouselPhotoByID :one
-SELECT id, carousel_id, photo_id, display_text, display_order, created_at
-FROM carousel_photos
-WHERE id = $1
-LIMIT 1
+const getCarouselPhotoWithImage = `-- name: GetCarouselPhotoWithImage :one
+SELECT
+    cp.id,
+    cp.carousel_id,
+    cp.photo_id,
+    cp.display_text,
+    cp.display_order,
+    cp.created_at,
+    p.image_url,
+    p.alt_text
+FROM carousel_photos cp
+JOIN photos p ON p.id = cp.photo_id
+WHERE cp.id = $1
 `
 
-func (q *Queries) GetCarouselPhotoByID(ctx context.Context, id int32) (CarouselPhoto, error) {
-	row := q.db.QueryRow(ctx, getCarouselPhotoByID, id)
-	var i CarouselPhoto
+type GetCarouselPhotoWithImageRow struct {
+	ID           int32              `json:"id"`
+	CarouselID   int32              `json:"carousel_id"`
+	PhotoID      int32              `json:"photo_id"`
+	DisplayText  pgtype.Text        `json:"display_text"`
+	DisplayOrder pgtype.Int4        `json:"display_order"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	ImageUrl     string             `json:"image_url"`
+	AltText      pgtype.Text        `json:"alt_text"`
+}
+
+func (q *Queries) GetCarouselPhotoWithImage(ctx context.Context, id int32) (GetCarouselPhotoWithImageRow, error) {
+	row := q.db.QueryRow(ctx, getCarouselPhotoWithImage, id)
+	var i GetCarouselPhotoWithImageRow
 	err := row.Scan(
 		&i.ID,
 		&i.CarouselID,
@@ -76,6 +95,8 @@ func (q *Queries) GetCarouselPhotoByID(ctx context.Context, id int32) (CarouselP
 		&i.DisplayText,
 		&i.DisplayOrder,
 		&i.CreatedAt,
+		&i.ImageUrl,
+		&i.AltText,
 	)
 	return i, err
 }

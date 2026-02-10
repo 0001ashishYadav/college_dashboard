@@ -9,11 +9,20 @@ INSERT INTO carousel_photos (
 )
 RETURNING *;
 
--- name: GetCarouselPhotoByID :one
-SELECT *
-FROM carousel_photos
-WHERE id = $1
-LIMIT 1;
+-- name: GetCarouselPhotoWithImage :one
+SELECT
+    cp.id,
+    cp.carousel_id,
+    cp.photo_id,
+    cp.display_text,
+    cp.display_order,
+    cp.created_at,
+    p.image_url,
+    p.alt_text
+FROM carousel_photos cp
+JOIN photos p ON p.id = cp.photo_id
+WHERE cp.id = $1;
+
 
 
 -- name: GetCarouselPhotosByCarouselID :many
