@@ -4,6 +4,7 @@ go 1.25.5
 
 require (
 	aidanwoods.dev/go-paseto v1.6.0
+	github.com/cloudinary/cloudinary-go/v2 v2.14.1
 	github.com/go-playground/validator/v10 v10.30.1
 	github.com/gofiber/fiber/v2 v2.52.11
 	github.com/jackc/pgx/v5 v5.8.0
@@ -13,7 +14,6 @@ require (
 require (
 	aidanwoods.dev/go-result v0.3.1 // indirect
 	github.com/andybalholm/brotli v1.1.0 // indirect
-	github.com/cloudinary/cloudinary-go/v2 v2.14.1 // indirect
 	github.com/creasty/defaults v1.7.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.12 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect

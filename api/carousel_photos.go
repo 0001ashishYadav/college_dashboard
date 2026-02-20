@@ -189,3 +189,48 @@ func (server *Server) getCarouselPhotosByCarouselID(c *fiber.Ctx) error {
 
 	return c.JSON(result)
 }
+
+func (server *Server) deleteCarouselPhoto(c *fiber.Ctx) error {
+	// 🔐 Auth
+	payload := c.Locals(TokenPayloadKey).(*token.TokenPayload)
+
+	// 📌 Carousel photo ID
+	id, err := c.ParamsInt("id")
+	if err != nil || id <= 0 {
+		return fiber.NewError(400, "invalid carousel photo id")
+	}
+
+	// 1️⃣ Fetch carousel photo
+	row, err := server.store.GetCarouselPhotoWithImage(
+		c.Context(),
+		int32(id),
+	)
+	if err != nil {
+		return NotFoundError("carousel photo not found")
+	}
+
+	// 2️⃣ Institute security check
+	_, err = server.store.GetCarouselWithPhotos(
+		c.Context(),
+		pgdb.GetCarouselWithPhotosParams{
+			ID:          row.CarouselID,
+			InstituteID: payload.InstituteID,
+		},
+	)
+	if err != nil {
+		return fiber.NewError(403, "access denied")
+	}
+
+	// 3️⃣ Delete carousel photo
+	err = server.store.DeleteCarouselPhoto(
+		c.Context(),
+		int32(id),
+	)
+	if err != nil {
+		return InternalServerError(err.Error())
+	}
+
+	return c.JSON(fiber.Map{
+		"message": "carousel photo deleted successfully",
+	})
+}

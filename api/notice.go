@@ -17,10 +17,10 @@ type CreateNoticeRequest struct {
 }
 
 type UpdateNoticeRequest struct {
-	Title       string `json:"title" validate:"required"`
-	Description string `json:"description"`
-	IsPublished *bool  `json:"is_published"`
-	PublishDate string `json:"publish_date"` // YYYY-MM-DD
+	Title       string     `json:"title" validate:"required"`
+	Description string     `json:"description"`
+	IsPublished *bool      `json:"is_published"`
+	PublishDate *time.Time `json:"publish_date"` // YYYY-MM-DD
 }
 
 func (server *Server) createNotice(c *fiber.Ctx) error {
@@ -211,7 +211,7 @@ func (server *Server) updateNotice(c *fiber.Ctx) error {
 		)
 	}
 
-	// 🔐 ADMIN CHECK (ADDED)
+	// 🔐 ADMIN CHECK
 	if payload.Role != "admin" {
 		return fiber.NewError(
 			fiber.StatusForbidden,
@@ -236,16 +236,14 @@ func (server *Server) updateNotice(c *fiber.Ctx) error {
 
 	// 7️⃣ Convert publish_date to pgtype.Date
 	publishDate := pgtype.Date{Valid: false}
-	if req.PublishDate != "" {
-		if err := publishDate.Scan(req.PublishDate); err != nil {
-			return fiber.NewError(
-				fiber.StatusBadRequest,
-				"publish_date must be YYYY-MM-DD",
-			)
+	if req.PublishDate != nil {
+		publishDate = pgtype.Date{
+			Time:  *req.PublishDate,
+			Valid: true,
 		}
 	}
 
-	// 8️⃣ Update notice
+	// 8️⃣ Update notice in DB
 	notice, err := server.store.UpdateNotice(
 		c.Context(),
 		pgdb.UpdateNoticeParams{
