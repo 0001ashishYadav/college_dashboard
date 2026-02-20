@@ -1,7 +1,6 @@
 module dashboard
 
-go 1.25.5
-
+go 1.25
 require (
 	aidanwoods.dev/go-paseto v1.6.0
 	github.com/cloudinary/cloudinary-go/v2 v2.14.1
